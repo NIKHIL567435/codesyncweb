@@ -98,8 +98,225 @@ editor.setOptions({
     autoScrollEditorIntoView: true
 });
 
-// Initialize all functionality when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize SignalR connection
+let connection = null;
+let currentGroup = JSON.parse(localStorage.getItem('currentGroup')) || null;
+let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+
+async function initializeSignalR() {
+    try {
+        console.log("Initializing SignalR connection...");
+        
+        // Create connection
+        connection = new signalR.HubConnectionBuilder()
+            .withUrl("http://localhost:5000/groupsBasics", {
+                skipNegotiation: true,
+                transport: signalR.HttpTransportType.WebSockets
+            })
+            .withAutomaticReconnect([0, 2000, 5000, 10000, 20000])
+            .configureLogging(signalR.LogLevel.Debug)
+            .build();
+
+        // Set up event handlers
+        connection.on("groupid", (groupId) => {
+            console.log("Group created with ID:", groupId);
+            currentGroup = { 
+                id: groupId,
+                name: currentGroup?.name || 'New Group'
+            };
+            showNotification("Group created successfully!", "success");
+        });
+
+        connection.on("error", (message) => {
+            console.error("SignalR Error:", message);
+            showNotification(message, "error");
+        });
+
+        connection.on("codetransfermation", (user, code) => {
+            console.log("Received code update from:", user);
+            if (user !== currentUser?.name) {
+                // Store current cursor position and scroll position
+                const cursorPosition = editor.getCursorPosition();
+                const scrollTop = editor.getSession().getScrollTop();
+                
+                // Update the code
+                editor.setValue(code);
+                
+                // Restore cursor position and scroll position
+                editor.gotoLine(cursorPosition.row + 1, cursorPosition.column);
+                editor.getSession().setScrollTop(scrollTop);
+                
+                // Show notification
+                showNotification(`Code updated by ${user}`, "info");
+            }
+        });
+
+        connection.on("receiveMessage", (user, status, message) => {
+            console.log("Received message from:", user, "Status:", status);
+            addMessage(user, message, false);
+        });
+
+        connection.on("memberBanished", (userName) => {
+            if (userName === currentUser?.name) {
+                showNotification("You have been removed from the group", "error");
+                window.location.href = "index.html";
+            } else {
+                updateMemberList();
+                showNotification(`${userName} has left the group`, "info");
+            }
+        });
+
+        connection.on("theMembersThings", (memberList, count) => {
+            console.log("Received member list update:", memberList);
+            updateMemberList(memberList);
+            document.getElementById("memberCount").textContent = count;
+        });
+
+        // Start the connection
+        console.log("Starting SignalR connection...");
+        await connection.start();
+        console.log("SignalR Connected successfully!");
+        showNotification("Connected to server", "success");
+
+        // Initialize user and group
+        initializeUserAndGroup();
+    } catch (err) {
+        console.error("SignalR Connection Error:", err);
+        showNotification("Failed to connect to server. Please make sure the server is running at http://localhost:5000", "error");
+    }
+}
+
+// Initialize user and group
+function initializeUserAndGroup() {
+    if (!currentUser) {
+        currentUser = {
+            name: `User${Math.floor(Math.random() * 1000)}`,
+            status: 'member'
+        };
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const groupName = urlParams.get('group');
+    const isCreating = urlParams.get('create') === 'true';
+
+    if (isCreating) {
+        createGroup(groupName || 'New Group');
+    } else if (groupName) {
+        joinGroup(groupName);
+    }
+}
+
+// Group management functions
+async function createGroup(groupName) {
+    try {
+        await connection.invoke("DomainExpansion", 
+            currentUser.name, 
+            "royal", 
+            groupName
+        );
+        currentUser.status = "royal";
+        currentGroup = {
+            name: groupName,
+            id: Date.now().toString()
+        };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        localStorage.setItem('currentGroup', JSON.stringify(currentGroup));
+        showNotification("Group created successfully!", "success");
+    } catch (err) {
+        console.error("Error creating group:", err);
+        showNotification(err.message || "Failed to create group", "error");
+    }
+}
+
+async function joinGroup(groupName) {
+    try {
+        await connection.invoke("DomainExpansion", 
+            currentUser.name, 
+            "member", 
+            groupName
+        );
+        currentGroup = {
+            name: groupName,
+            id: Date.now().toString()
+        };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        localStorage.setItem('currentGroup', JSON.stringify(currentGroup));
+        showNotification("Joined group successfully!", "success");
+    } catch (err) {
+        console.error("Error joining group:", err);
+        showNotification(err.message || "Failed to join group", "error");
+    }
+}
+
+// Code sharing
+async function shareCode() {
+    if (!connection || !currentGroup || !currentUser) {
+        console.log("Cannot share code: Not connected to a group");
+        return;
+    }
+    
+    try {
+        const code = editor.getValue();
+        console.log("Sharing code to group:", currentGroup.name);
+        await connection.invoke("Exchange", 
+            currentGroup.name, 
+            currentUser.name, 
+            code
+        );
+    } catch (err) {
+        console.error("Error sharing code:", err);
+        showNotification(err.message || "Failed to share code", "error");
+    }
+}
+
+// Chat functionality
+async function sendChatMessage(message) {
+    if (!connection || !currentGroup || !currentUser) {
+        showNotification("Cannot send message: Not connected to a group", "error");
+        return;
+    }
+    
+    if (!message || message.trim() === '') {
+        showNotification("Cannot send empty message", "warning");
+        return;
+    }
+    
+    try {
+        console.log("Sending message to group:", currentGroup.name);
+        await connection.invoke("SendMessageToGroup", 
+            currentGroup.name, 
+            currentUser.name, 
+            message.trim()
+        );
+    } catch (err) {
+        console.error("Error sending message:", err);
+        showNotification(err.message || "Failed to send message", "error");
+    }
+}
+
+// Update the existing sendMessage function
+function sendMessage() {
+    const messageInput = document.getElementById('messageInput');
+    if (!messageInput) {
+        console.error("Message input element not found");
+        return;
+    }
+
+    const message = messageInput.value.trim();
+    if (message) {
+        sendChatMessage(message).then(() => {
+            addMessage(currentUser.name, message, true);
+            messageInput.value = '';
+            messageInput.focus();
+        }).catch(err => {
+            console.error("Error in sendMessage:", err);
+            showNotification("Failed to send message", "error");
+        });
+    }
+}
+
+// Initialize everything when the page loads
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('DOM loaded, initializing application...');
     
     // Initialize editor
@@ -109,17 +326,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // Initialize SignalR
+    await initializeSignalR();
+    
     // Initialize panels
     initializePanels();
     
-    // Initialize buttons and controls
+    // Add editor change handler for real-time updates
+    let debounceTimer;
+    editor.on('change', () => {
+        if (connection && currentGroup && currentUser?.status === 'royal') {
+            // Clear the previous timer
+            clearTimeout(debounceTimer);
+            
+            // Set a new timer
+            debounceTimer = setTimeout(() => {
+                shareCode();
+            }, 500); // Wait for 500ms of no changes before sharing
+        }
+    });
+
+    // Initialize other event listeners
     const runCodeBtn = document.getElementById('runCodeBtn');
     const leaveBtn = document.getElementById('leaveBtn');
     const clearOutputBtn = document.querySelector('.clear-output');
-    const languageSelect = document.getElementById('language');
-    const themeSelect = document.getElementById('theme');
     
-    // Add event listeners only if elements exist
     if (runCodeBtn) {
         runCodeBtn.addEventListener('click', () => {
             const code = editor.getValue();
@@ -207,8 +438,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     if (leaveBtn) {
-        leaveBtn.addEventListener('click', () => {
+        leaveBtn.addEventListener('click', async () => {
             if (confirm('Are you sure you want to leave? Any unsaved changes will be lost.')) {
+                if (connection && currentGroup) {
+                    try {
+                        await connection.invoke("LeaveByWill", 
+                            currentGroup.name, 
+                            currentUser.name, 
+                            currentUser.status
+                        );
+                    } catch (err) {
+                        console.error("Error leaving group:", err);
+                    }
+                }
                 localStorage.removeItem('currentUser');
                 window.location.href = 'index.html';
             }
@@ -224,28 +466,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    if (languageSelect) {
-        languageSelect.addEventListener('change', () => {
-            const language = languageSelect.value;
-            editor.session.setMode(`ace/mode/${language}`);
-            editor.setValue(defaultCode[language] || '');
-            editor.clearSelection();
-            showNotification(`Language changed to ${language}`, 'info');
-        });
-    }
-
-    if (themeSelect) {
-        themeSelect.addEventListener('change', () => {
-            const theme = themeSelect.value;
-            editor.setTheme(`ace/theme/${theme}`);
-            showNotification(`Theme changed to ${theme}`, 'info');
-        });
-    }
-
-    // Initialize mobile handling
-    handleMobileLayout();
-    handleMobileKeyboard();
 });
 
 // Theme change handler
@@ -418,20 +638,7 @@ function addMessage(sender, text, isSent = false) {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
-function sendMessage() {
-    const message = messageInput.value.trim();
-    if (message) {
-        const currentUser = JSON.parse(localStorage.getItem('currentUser')) || { name: 'You' };
-        addMessage(currentUser.name, message, true);
-        messageInput.value = '';
-        messageInput.focus();
-    }
-}
-
 // Group management
-let currentGroup = JSON.parse(localStorage.getItem('currentGroup')) || null;
-let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
-
 function createGroup(groupName) {
     currentGroup = {
         id: Date.now().toString(),
@@ -983,4 +1190,15 @@ document.addEventListener('DOMContentLoaded', () => {
             showNotification('Output cleared', 'info');
         });
     }
+});
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+    initializeSignalR();
+    initializeUserAndGroup();
+    initializePanels();
+    initializeEditor();
+    initializeCodeExecution();
+    initializeChat();
+    initializeMembers();
 }); 
