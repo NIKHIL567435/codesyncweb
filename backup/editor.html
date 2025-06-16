@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CodeSync - Collaborative Editor</title>
+    <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+    <div id="controls">
+        <div id="leave">
+            <button id="leaveBtn">Leave</button>
+        </div>
+        <div id="themes">
+            <select id="theme" onchange="themechange()">
+                <option value="monokai">Monokai</option>
+                <option value="github">GitHub</option>
+                <option value="twilight">Twilight</option>
+                <option value="xcode">Xcode</option>
+                <option value="solarized_dark">Solarized Dark</option>
+                <option value="solarized_light">Solarized Light</option>
+            </select>
+        </div>
+        <div id="langueages">
+            <select id="language" onchange="languagechange()">
+                <option value="javascript">JavaScript</option>
+                <option value="python">Python</option>
+                <option value="golang">Go</option>
+                <option value="csharp">C#</option>
+                <option value="java">Java</option>
+                <option value="php">PHP</option>
+            </select>
+        </div>
+        <div id="execute">
+            <button id="runCodeBtn">Run Code</button>
+        </div>
+    </div>
+
+    <div id="main">
+        <div id="editor"></div>
+        <div id="output">
+            <h3>Output</h3>
+            <pre id="outputContent"></pre>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="scrollable-container">
+            <h3>Members (<span id="memberCount">0</span>)</h3>
+            <ul id="memberList"></ul>
+        </div>
+
+        <div id="chatBox">
+            <h3>Chat</h3>
+            <div id="messages"></div>
+            <div class="chat-input">
+                <input id="messageInput" type="text" placeholder="Type a message...">
+                <button id="sendBtn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/5.0.10/signalr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+    <script src="editor.js"></script>
+</body>
+</html> 

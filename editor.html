@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeSync - Collaborative Editor</title>
+    <link rel="stylesheet" href="editor.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-left">
+                <h1 class="app-title">CodeSync</h1>
+                <div class="editor-controls">
+                    <select id="language" class="control-select" onchange="languagechange()">
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="golang">Go</option>
+                        <option value="csharp">C#</option>
+                        <option value="java">Java</option>
+                        <option value="php">PHP</option>
+                    </select>
+                    <select id="theme" class="control-select" onchange="themechange()">
+                        <option value="monokai">Monokai</option>
+                        <option value="github">GitHub</option>
+                        <option value="twilight">Twilight</option>
+                        <option value="xcode">Xcode</option>
+                        <option value="solarized_dark">Solarized Dark</option>
+                        <option value="solarized_light">Solarized Light</option>
+                    </select>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="membersBtn" class="btn btn-secondary">
+                    <span class="btn-icon">👥</span>
+                    <span>Members</span>
+                </button>
+                <button id="chatBtn" class="btn btn-secondary">
+                    <span class="btn-icon">💬</span>
+                    <span>Chat</span>
+                </button>
+                <button id="runCodeBtn" class="btn btn-primary">
+                    <span class="btn-icon">▶</span>
+                    Run Code
+                </button>
+                <button id="leaveBtn" class="btn btn-danger">
+                    <span class="btn-icon">↪</span>
+                    Leave
+                </button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="editor-section">
+                <div class="editor-container">
+                    <div id="editor"></div>
+                </div>
+                <div class="output-panel">
+                    <div class="panel-header">
+                        <h3>Output</h3>
+                        <button class="clear-output">Clear</button>
+                    </div>
+                    <pre id="outputContent"></pre>
+                </div>
+            </div>
+        </main>
+
+        <!-- Members Panel -->
+        <div id="membersPanel" class="panel">
+            <div class="panel-header">
+                <h3>Members</h3>
+                <span id="memberCount" class="badge">0</span>
+                <button class="close-panel">×</button>
+            </div>
+            <div class="scrollable-container">
+                <ul id="memberList"></ul>
+            </div>
+        </div>
+
+        <!-- Chat Panel -->
+        <div id="chatPanel" class="panel chat-popup">
+            <div class="panel-header">
+                <h3>Chat</h3>
+                <div class="header-actions">
+                    <span class="online-count">👥 <span id="onlineCount">0</span> online</span>
+                    <button class="close-panel">×</button>
+                </div>
+            </div>
+            <div id="messages" class="messages-container"></div>
+            <div class="chat-input">
+                <input id="messageInput" type="text" placeholder="Type a message...">
+                <button id="sendBtn" class="btn btn-primary">
+                    <span class="btn-icon">➤</span>
+                    <span>Send</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Overlay for popups -->
+        <div id="overlay" class="overlay"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/5.0.10/signalr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+    <script src="editor.js"></script>
+</body>
+</html> 

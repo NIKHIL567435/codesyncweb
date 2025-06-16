@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeSync - Collaborative Coding</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="welcome-section">
+            <h1>CodeSync</h1>
+            <p>Real-time collaborative coding platform</p>
+        </div>
+
+        <div class="main-content">
+            <div class="form-section">
+                <div class="input-group">
+                    <label for="username">Your Name</label>
+                    <input type="text" id="username" placeholder="Enter your name" class="input-field">
+                </div>
+                <div class="input-group">
+                    <label for="groupName">Group Name / ID</label>
+                    <input type="text" id="groupName" placeholder="Enter group name or ID" class="input-field">
+                </div>
+                <div class="button-group">
+                    <button id="createGroupBtn" class="btn btn-primary">
+                        <span class="btn-icon">+</span>
+                        Create Group
+                    </button>
+                    <button id="joinGroupBtn" class="btn btn-secondary">
+                        <span class="btn-icon">→</span>
+                        Join Group
+                    </button>
+                </div>
+            </div>
+
+            <div class="features-section">
+                <div class="feature">
+                    <h3>Real-time Collaboration</h3>
+                    <p>Code together with your team in real-time. See changes instantly and collaborate seamlessly.</p>
+                </div>
+                <div class="feature">
+                    <h3>Multiple Languages</h3>
+                    <p>Support for various programming languages with syntax highlighting and auto-completion.</p>
+                </div>
+                <div class="feature">
+                    <h3>Live Chat</h3>
+                    <p>Communicate with your team through the built-in chat system while coding.</p>
+                </div>
+                <div class="feature">
+                    <h3>Code Execution</h3>
+                    <p>Run your code directly in the browser and see the output in real-time.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('createGroupBtn').addEventListener('click', () => {
+            const username = document.getElementById('username').value.trim();
+            const groupName = document.getElementById('groupName').value.trim();
+
+            if (!username) {
+                showError('Please enter your name');
+                return;
+            }
+
+            if (!groupName) {
+                showError('Please enter a group name');
+                return;
+            }
+
+            // Save user info
+            const user = {
+                id: Date.now().toString(),
+                name: username
+            };
+            localStorage.setItem('currentUser', JSON.stringify(user));
+
+            // Redirect to editor with create flag
+            window.location.href = `editor.html?create=true`;
+        });
+
+        document.getElementById('joinGroupBtn').addEventListener('click', () => {
+            const username = document.getElementById('username').value.trim();
+            const groupName = document.getElementById('groupName').value.trim();
+
+            if (!username) {
+                showError('Please enter your name');
+                return;
+            }
+
+            if (!groupName) {
+                showError('Please enter a group ID');
+                return;
+            }
+
+            // Save user info
+            const user = {
+                id: Date.now().toString(),
+                name: username
+            };
+            localStorage.setItem('currentUser', JSON.stringify(user));
+
+            // Redirect to editor with group ID
+            window.location.href = `editor.html?groupId=${groupName}`;
+        });
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            document.querySelector('.form-section').appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 3000);
+        }
+    </script>
+</body>
+</html> 
